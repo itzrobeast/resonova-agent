@@ -1,0 +1,17 @@
+{
+  "name": "resonova-agent",
+  "version": "1.0.0",
+  "type": "module",
+  "main": "server.js",
+  "scripts": {
+    "start": "node server.js"
+  },
+  "dependencies": {
+    "express": "^4.19.2",
+    "dotenv": "^17.0.0",
+    "openai": "^4.0.0",
+    "nodemailer": "^6.9.13",
+    "node-fetch": "^3.3.2",
+    "cheerio": "^1.0.0-rc.12"
+  }
+}
