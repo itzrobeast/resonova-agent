@@ -1,0 +1,23 @@
+import express from "express";
+import { generateEmail } from "../services/ai.js";
+import { sendEmail } from "../services/email.js";
+
+const router = express.Router();
+
+router.post("/send", async (req, res) => {
+  try {
+    const { name, email, project, track } = req.body;
+
+    const message = await generateEmail({ name, project, track });
+
+    await sendEmail(email, "Quick idea for your project", message);
+
+    res.json({ success: true, message });
+
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ error: "Failed to send outreach" });
+  }
+});
+
+export default router;
