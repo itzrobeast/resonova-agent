@@ -22,6 +22,9 @@ function normalizeLead(lead) {
     last_contacted_at: lead.last_contacted_at || lead.last_contacted || null,
     last_opened_at: lead.last_opened_at || null,
     last_replied_at: lead.last_replied_at || lead.last_reply_at || null,
+    last_reply_message: lead.last_reply_message || null,
+    reply_intent: lead.reply_intent || null,
+    reply_confidence: Number(lead.reply_confidence || 0),
   };
 }
 
@@ -117,7 +120,7 @@ export async function markLeadOpened(leadId) {
   return leads[idx];
 }
 
-export async function markLeadReplied(leadId) {
+export async function markLeadReplied(leadId, replyDetails = {}) {
   const leads = await readStore();
   const idx = leads.findIndex((lead) => lead.id === leadId);
   if (idx < 0) return null;
@@ -129,6 +132,9 @@ export async function markLeadReplied(leadId) {
     status: 'replied',
     last_replied_at: nowIso,
     last_reply_at: nowIso,
+    last_reply_message: replyDetails.message || leads[idx].last_reply_message || null,
+    reply_intent: replyDetails.intent || leads[idx].reply_intent || 'other',
+    reply_confidence: Number(replyDetails.confidence ?? leads[idx].reply_confidence ?? 0),
     next_touch_at: null,
     automation_paused: true,
   };
