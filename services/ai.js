@@ -13,6 +13,18 @@ async function complete(prompt) {
   return response.choices[0]?.message?.content || '';
 }
 
+export function generateSubjectLine(lead, variationIndex = 0) {
+  const project = lead.project || lead.projectTitle || 'your project';
+  const company = lead.company || lead.name || 'your team';
+  const variants = [
+    `Quick thought for ${project}`,
+    `Music fit idea for ${company}`,
+    `Soft intro — possible track for ${project}`,
+  ];
+
+  return variants[variationIndex % variants.length];
+}
+
 export async function generateEmail({ name, project, track, matchReasoning }) {
   const prompt = `
 Write a short email to a music supervisor.

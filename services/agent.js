@@ -1,16 +1,14 @@
 import { findLeads } from './leadFinder.js';
 import { matchProjectToMusic } from './projectMatcher.js';
 import { scoreLead } from './leadScoring.js';
-import { upsertLead, getLeadsForFollowUp } from './leadStore.js';
-import { sendInitialOutreach } from './outreach.js';
-
-const MAX_EMAILS_PER_RUN = 20;
-const MIN_HOURS_SINCE_CONTACT = 48;
+import { upsertLead, getAllLeads } from './leadStore.js';
+import { runSmartOutreach } from './outreach.js';
+import { getTrackingStats } from './tracking.js';
 
 export const runAgent = async () => {
   console.log('🚀 Resonova Agent Running...');
 
-  // 1) find leads
+  // 1) fetch leads
   const discoveredLeads = await findLeads();
   console.log(`🔎 Found ${discoveredLeads.length} leads.`);
 
@@ -34,31 +32,21 @@ export const runAgent = async () => {
     storedLeads.push(stored);
   }
 
-  const topScores = storedLeads.map((lead) => lead.score || 0).sort((a, b) => b - a).slice(0, 5);
-  console.log(`📈 Top scores this run: ${topScores.join(', ') || 'n/a'}`);
+  const leads = await getAllLeads();
 
-  // 4) select top leads (prioritized queue + cooling window)
-  const queue = await getLeadsForFollowUp({
-    max: MAX_EMAILS_PER_RUN,
-    minHoursSinceContact: MIN_HOURS_SINCE_CONTACT,
-  });
+  // 4) filter (not replied/closed) + sort by score DESC
+  const queue = leads
+    .filter((lead) => lead.status !== 'replied' && lead.status !== 'closed')
+    .sort((a, b) => (b.score || 0) - (a.score || 0));
 
-  // 5) send outreach
-  let sentCount = 0;
-  for (const lead of queue) {
-    if (!lead.email) continue;
+  // 5) run outreach (limits enforced in runSmartOutreach)
+  const outreachResult = await runSmartOutreach(queue);
 
-    try {
-      await sendInitialOutreach(lead);
-      sentCount += 1;
-      console.log(`✅ Sent to ${lead.name || lead.email}`);
-    } catch (err) {
-      console.error(`❌ Error with ${lead.name || lead.id}`, err);
-    }
-  }
+  // 6) schedule next touches + logs
+  const trackingStats = await getTrackingStats();
 
-  // 6) schedule follow-ups (placeholder: queue already managed in leadStore)
-  console.log(`🗓️ Follow-up queue size considered: ${queue.length}`);
-
-  console.log(`🏁 Agent run complete. Processed: ${storedLeads.length}, Emails sent: ${sentCount}`);
+  console.log(`📬 Emails sent: ${outreachResult.sent.length}`);
+  console.log(`👀 Opens detected: ${trackingStats.opened}`);
+  console.log(`🗓️ Follow-ups scheduled: ${outreachResult.scheduled.length}`);
+  console.log(`🏁 Agent run complete. Processed: ${storedLeads.length}, Emails sent: ${outreachResult.sent.length}`);
 };
