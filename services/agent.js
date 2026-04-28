@@ -1,33 +1,64 @@
 import { findLeads } from './leadFinder.js';
-import { generateOutreach } from './ai.js';
-import { sendEmail } from './email.js';
+import { matchProjectToMusic } from './projectMatcher.js';
+import { scoreLead } from './leadScoring.js';
+import { upsertLead, getLeadsForFollowUp } from './leadStore.js';
+import { sendInitialOutreach } from './outreach.js';
+
+const MAX_EMAILS_PER_RUN = 20;
+const MIN_HOURS_SINCE_CONTACT = 48;
 
 export const runAgent = async () => {
-  console.log("🚀 Resonova Agent Running...");
+  console.log('🚀 Resonova Agent Running...');
 
-  // Step 1: Find leads
-  const leads = await findLeads();
+  // 1) find leads
+  const discoveredLeads = await findLeads();
+  console.log(`🔎 Found ${discoveredLeads.length} leads.`);
 
-  for (const lead of leads) {
+  // 2) score + 3) store leads
+  const storedLeads = [];
+  for (const rawLead of discoveredLeads) {
+    const match = matchProjectToMusic({
+      title: rawLead.project || rawLead.projectTitle,
+      description: rawLead.notes,
+      genre: rawLead.genre,
+    });
+
+    const leadWithMatch = {
+      ...rawLead,
+      match,
+      matchScore: match.score,
+    };
+
+    const score = scoreLead(leadWithMatch);
+    const stored = await upsertLead({ ...leadWithMatch, score });
+    storedLeads.push(stored);
+  }
+
+  const topScores = storedLeads.map((lead) => lead.score || 0).sort((a, b) => b - a).slice(0, 5);
+  console.log(`📈 Top scores this run: ${topScores.join(', ') || 'n/a'}`);
+
+  // 4) select top leads (prioritized queue + cooling window)
+  const queue = await getLeadsForFollowUp({
+    max: MAX_EMAILS_PER_RUN,
+    minHoursSinceContact: MIN_HOURS_SINCE_CONTACT,
+  });
+
+  // 5) send outreach
+  let sentCount = 0;
+  for (const lead of queue) {
+    if (!lead.email) continue;
+
     try {
-      console.log(`🔍 Processing: ${lead.name}`);
-
-      // Step 2: Generate personalized outreach
-      const message = await generateOutreach(lead);
-
-      // Step 3: Send email
-      await sendEmail({
-        to: lead.email,
-        subject: message.subject,
-        body: message.body,
-      });
-
-      console.log(`✅ Sent to ${lead.name}`);
-
+      await sendInitialOutreach(lead);
+      sentCount += 1;
+      console.log(`✅ Sent to ${lead.name || lead.email}`);
     } catch (err) {
-      console.error(`❌ Error with ${lead.name}`, err);
+      console.error(`❌ Error with ${lead.name || lead.id}`, err);
     }
   }
 
-  console.log("🏁 Agent run complete.");
+  // 6) schedule follow-ups (placeholder: queue already managed in leadStore)
+  console.log(`🗓️ Follow-up queue size considered: ${queue.length}`);
+
+  console.log(`🏁 Agent run complete. Processed: ${storedLeads.length}, Emails sent: ${sentCount}`);
 };
