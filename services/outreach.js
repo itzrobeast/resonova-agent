@@ -3,6 +3,9 @@ import { sendEmail } from './email.js';
 import { markLeadContacted } from './leadStore.js';
 import { updateOpportunityStage } from './crm.js';
 import { createTrackingId } from './tracking.js';
+import { classifyReply } from './replyClassifier.js';
+import { generateResponse } from './autoResponder.js';
+import { markLeadReplied } from './leadStore.js';
 
 const MAX_EMAILS_PER_RUN = 20;
 const MAX_EMAILS_PER_DOMAIN = 5;
@@ -125,4 +128,29 @@ export async function runSmartOutreach(leads = []) {
   }
 
   return { sent, scheduled };
+}
+
+
+export async function handleLeadReply(lead, message, options = {}) {
+  const classification = await classifyReply(message);
+  const updatedLead = await markLeadReplied(lead.id, {
+    message,
+    intent: classification.intent,
+    confidence: classification.confidence,
+  });
+
+  const shouldAutoRespond = options.autoRespond !== false && classification.intent !== 'other';
+  const responseMessage = shouldAutoRespond ? generateResponse(updatedLead || lead, classification) : null;
+
+  let action = classification.suggested_action || 'review_manually';
+  if (classification.intent === 'interested') action = 'prioritize_and_send_tracks';
+  if (classification.intent === 'info_request') action = 'send_requested_details';
+  if (classification.intent === 'not_interested') action = 'close_politely';
+
+  return {
+    lead: updatedLead,
+    classification,
+    nextAction: action,
+    autoResponse: responseMessage,
+  };
 }

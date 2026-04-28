@@ -42,6 +42,17 @@ export const runAgent = async () => {
   // 5) run outreach (limits enforced in runSmartOutreach)
   const outreachResult = await runSmartOutreach(queue);
 
+  const highPriorityReplies = leads
+    .filter((lead) => lead.reply_intent === 'interested')
+    .sort((a, b) => (b.reply_confidence || 0) - (a.reply_confidence || 0));
+
+  if (highPriorityReplies.length) {
+    console.log(`🔥 High-priority replies: ${highPriorityReplies.length}`);
+    highPriorityReplies.slice(0, 5).forEach((lead) => {
+      console.log(`   • ${lead.email || lead.name || lead.id} intent=${lead.reply_intent} confidence=${Number(lead.reply_confidence || 0).toFixed(2)} paused=${Boolean(lead.automation_paused)}`);
+    });
+  }
+
   // 6) schedule next touches + logs
   const trackingStats = await getTrackingStats();
 
