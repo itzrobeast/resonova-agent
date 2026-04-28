@@ -25,6 +25,8 @@ function normalizeLead(lead) {
     last_reply_message: lead.last_reply_message || null,
     reply_intent: lead.reply_intent || null,
     reply_confidence: Number(lead.reply_confidence || 0),
+    high_priority: Boolean(lead.high_priority),
+    requires_human: Boolean(lead.requires_human),
   };
 }
 
@@ -137,6 +139,8 @@ export async function markLeadReplied(leadId, replyDetails = {}) {
     reply_confidence: Number(replyDetails.confidence ?? leads[idx].reply_confidence ?? 0),
     next_touch_at: null,
     automation_paused: true,
+    high_priority: Boolean(replyDetails.high_priority ?? leads[idx].high_priority),
+    requires_human: Boolean(replyDetails.requires_human ?? leads[idx].requires_human),
   };
 
   await writeStore(leads);
