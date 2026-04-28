@@ -133,10 +133,18 @@ export async function runSmartOutreach(leads = []) {
 
 export async function handleLeadReply(lead, message, options = {}) {
   const classification = await classifyReply(message);
+  const isHighPriority = classification.intent === 'interested' && Number(classification.confidence || 0) > 0.8;
+
+  if (isHighPriority) {
+    console.log('🔥 HIGH VALUE LEAD');
+  }
+
   const updatedLead = await markLeadReplied(lead.id, {
     message,
     intent: classification.intent,
     confidence: classification.confidence,
+    high_priority: isHighPriority,
+    requires_human: isHighPriority,
   });
 
   const shouldAutoRespond = options.autoRespond !== false && classification.intent !== 'other';
@@ -147,10 +155,18 @@ export async function handleLeadReply(lead, message, options = {}) {
   if (classification.intent === 'info_request') action = 'send_requested_details';
   if (classification.intent === 'not_interested') action = 'close_politely';
 
+  const responseTimestamp = new Date().toISOString();
+  console.log('[Conversation Flow]', {
+    intent: classification.intent,
+    response_sent: responseMessage,
+    timestamp: responseTimestamp,
+  });
+
   return {
     lead: updatedLead,
     classification,
     nextAction: action,
     autoResponse: responseMessage,
+    highPriority: isHighPriority,
   };
 }
