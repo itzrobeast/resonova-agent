@@ -6,6 +6,8 @@ import { createTrackingId } from './tracking.js';
 import { classifyReply } from './replyClassifier.js';
 import { generateResponse } from './autoResponder.js';
 import { markLeadReplied } from './leadStore.js';
+import { notifyHighValueLead } from './alerts.js';
+import { sendTrackSelection } from './dealActions.js';
 
 const MAX_EMAILS_PER_RUN = 20;
 const MAX_EMAILS_PER_DOMAIN = 5;
@@ -89,6 +91,7 @@ export async function runSmartOutreach(leads = []) {
   for (const lead of leads) {
     if (sent.length >= MAX_EMAILS_PER_RUN) break;
     if (!lead.email) continue;
+    if (lead.requires_human === true || lead.high_priority === true) continue;
 
     const lastContacted = getTime(lead.last_contacted_at || lead.last_contacted);
     if (lastContacted && now - lastContacted < HOURS_24) {
@@ -136,7 +139,19 @@ export async function handleLeadReply(lead, message, options = {}) {
   const isHighPriority = classification.intent === 'interested' && Number(classification.confidence || 0) > 0.8;
 
   if (isHighPriority) {
-    console.log('🔥 HIGH VALUE LEAD');
+    notifyHighValueLead({ ...(lead || {}), classification });
+  }
+
+  const shouldAutoRespond = options.autoRespond !== false && classification.intent !== 'other';
+  const responseMessage = shouldAutoRespond ? generateResponse(lead, classification) : null;
+
+  if (responseMessage) {
+    const subject = options.subject || 'Re: Quick follow-up on your project';
+    await sendEmail(lead.email, subject, responseMessage);
+  }
+
+  if (classification.intent === 'interested') {
+    sendTrackSelection(lead);
   }
 
   const updatedLead = await markLeadReplied(lead.id, {
@@ -145,10 +160,8 @@ export async function handleLeadReply(lead, message, options = {}) {
     confidence: classification.confidence,
     high_priority: isHighPriority,
     requires_human: isHighPriority,
+    system_response: responseMessage,
   });
-
-  const shouldAutoRespond = options.autoRespond !== false && classification.intent !== 'other';
-  const responseMessage = shouldAutoRespond ? generateResponse(updatedLead || lead, classification) : null;
 
   let action = classification.suggested_action || 'review_manually';
   if (classification.intent === 'interested') action = 'prioritize_and_send_tracks';
