@@ -18,6 +18,10 @@ function normalizeLead(lead) {
     company: (lead.company || '').trim(),
     status: lead.status || 'new',
     followUpCount: Number(lead.followUpCount || 0),
+    outreach_count: Number(lead.outreach_count || 0),
+    last_contacted_at: lead.last_contacted_at || lead.last_contacted || null,
+    last_opened_at: lead.last_opened_at || null,
+    last_replied_at: lead.last_replied_at || lead.last_reply_at || null,
   };
 }
 
@@ -50,6 +54,13 @@ export async function upsertLead(inputLead) {
   const merged = {
     ...(existing || {}),
     ...normalized,
+    status: normalized.status || existing?.status || 'new',
+    outreach_count: Number(normalized.outreach_count || existing?.outreach_count || 0),
+    last_contacted_at: normalized.last_contacted_at || existing?.last_contacted_at || existing?.last_contacted || null,
+    last_contacted: normalized.last_contacted_at || existing?.last_contacted_at || existing?.last_contacted || null,
+    last_opened_at: normalized.last_opened_at || existing?.last_opened_at || null,
+    last_replied_at: normalized.last_replied_at || existing?.last_replied_at || existing?.last_reply_at || null,
+    last_reply_at: normalized.last_replied_at || existing?.last_replied_at || existing?.last_reply_at || null,
     score: scoreLead({ ...(existing || {}), ...normalized }),
     updatedAt: nowIso,
     createdAt: existing?.createdAt || nowIso,
@@ -75,14 +86,34 @@ export async function markLeadContacted(leadId) {
   const idx = leads.findIndex((lead) => lead.id === leadId);
   if (idx < 0) return null;
 
+  const nowIso = new Date().toISOString();
+
   leads[idx] = {
     ...leads[idx],
-    status: 'contacted',
-    last_contacted: new Date().toISOString(),
+    status: leads[idx].status === 'new' ? 'contacted' : leads[idx].status,
+    outreach_count: Number(leads[idx].outreach_count || 0) + 1,
+    last_contacted_at: nowIso,
+    last_contacted: nowIso,
   };
 
   await writeStore(leads);
   await updateOpportunityStage(leads[idx], 'contacted');
+  return leads[idx];
+}
+
+export async function markLeadOpened(leadId) {
+  const leads = await readStore();
+  const idx = leads.findIndex((lead) => lead.id === leadId);
+  if (idx < 0) return null;
+
+  const nowIso = new Date().toISOString();
+  leads[idx] = {
+    ...leads[idx],
+    status: leads[idx].status === 'replied' || leads[idx].status === 'closed' ? leads[idx].status : 'engaged',
+    last_opened_at: nowIso,
+  };
+
+  await writeStore(leads);
   return leads[idx];
 }
 
@@ -91,10 +122,15 @@ export async function markLeadReplied(leadId) {
   const idx = leads.findIndex((lead) => lead.id === leadId);
   if (idx < 0) return null;
 
+  const nowIso = new Date().toISOString();
+
   leads[idx] = {
     ...leads[idx],
     status: 'replied',
-    last_reply_at: new Date().toISOString(),
+    last_replied_at: nowIso,
+    last_reply_at: nowIso,
+    next_touch_at: null,
+    automation_paused: true,
   };
 
   await writeStore(leads);
@@ -102,26 +138,19 @@ export async function markLeadReplied(leadId) {
   return leads[idx];
 }
 
-export async function getLeadsForFollowUp({ max = 20, minHoursSinceContact = 48 } = {}) {
+export async function getLeadsForFollowUp({ max = 20, minHoursSinceContact = 24 } = {}) {
   const leads = await readStore();
   const now = Date.now();
   const minMs = minHoursSinceContact * 60 * 60 * 1000;
 
   return leads
     .filter((lead) => {
-      if (lead.status === 'closed') return false;
-      if (!lead.last_contacted) return true;
-      const lastContact = new Date(lead.last_contacted).getTime();
+      if (lead.status === 'closed' || lead.status === 'replied') return false;
+      if (!lead.last_contacted_at && !lead.last_contacted) return true;
+      const lastContact = new Date(lead.last_contacted_at || lead.last_contacted).getTime();
       if (Number.isNaN(lastContact)) return true;
       return now - lastContact >= minMs;
     })
-    .sort((a, b) => {
-      const scoreDiff = (b.score || 0) - (a.score || 0);
-      if (scoreDiff !== 0) return scoreDiff;
-
-      const aLast = a.last_contacted ? new Date(a.last_contacted).getTime() : 0;
-      const bLast = b.last_contacted ? new Date(b.last_contacted).getTime() : 0;
-      return aLast - bLast;
-    })
+    .sort((a, b) => (b.score || 0) - (a.score || 0))
     .slice(0, max);
 }
