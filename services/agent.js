@@ -37,6 +37,12 @@ export const runAgent = async () => {
   // 4) filter (not replied/closed) + sort by score DESC
   const queue = leads
     .filter((lead) => lead.status !== 'replied' && lead.status !== 'closed')
+    .map((lead) => {
+      if (lead.high_priority === true || lead.highPriority === true) {
+        return { ...lead, score: Number(lead.score || 0) + 10000 };
+      }
+      return lead;
+    })
     .sort((a, b) => (b.score || 0) - (a.score || 0));
 
   // 5) run outreach (limits enforced in runSmartOutreach)

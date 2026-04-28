@@ -27,6 +27,7 @@ function normalizeLead(lead) {
     reply_confidence: Number(lead.reply_confidence || 0),
     high_priority: Boolean(lead.high_priority),
     requires_human: Boolean(lead.requires_human),
+    conversation: Array.isArray(lead.conversation) ? lead.conversation : [],
   };
 }
 
@@ -129,6 +130,17 @@ export async function markLeadReplied(leadId, replyDetails = {}) {
 
   const nowIso = new Date().toISOString();
 
+  const existingConversation = Array.isArray(leads[idx].conversation) ? leads[idx].conversation : [];
+  const nextConversation = [...existingConversation];
+
+  if (replyDetails.message) {
+    nextConversation.push({ role: 'user', message: replyDetails.message, timestamp: nowIso });
+  }
+
+  if (replyDetails.system_response) {
+    nextConversation.push({ role: 'system', message: replyDetails.system_response, timestamp: nowIso });
+  }
+
   leads[idx] = {
     ...leads[idx],
     status: 'replied',
@@ -141,6 +153,7 @@ export async function markLeadReplied(leadId, replyDetails = {}) {
     automation_paused: true,
     high_priority: Boolean(replyDetails.high_priority ?? leads[idx].high_priority),
     requires_human: Boolean(replyDetails.requires_human ?? leads[idx].requires_human),
+    conversation: nextConversation,
   };
 
   await writeStore(leads);
