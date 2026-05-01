@@ -9,22 +9,25 @@ router.get("/test-ghl", async (req, res) => {
     const apiKey = "pit-9df35977-7326-4fbc-8ac2-94d564c31a36";
 
     const response = await fetch(
-      `https://rest.gohighlevel.com/v1/contacts/?locationId=${locationId}`,
+      `https://services.leadconnectorhq.com/contacts/?locationId=${locationId}`,
       {
         method: "GET",
         headers: {
           Authorization: `Bearer ${apiKey}`,
-          "Content-Type": "application/json",
-        },
+          Version: "2021-07-28",
+          Accept: "application/json",
+          Connection: "keep-alive"
+        }
       }
     );
 
-    const data = await response.json();
+    const text = await response.text();
 
     res.json({
       status: response.status,
-      data,
+      body: text
     });
+
   } catch (error) {
     console.error(error);
     res.status(500).send("Error connecting to GHL");
