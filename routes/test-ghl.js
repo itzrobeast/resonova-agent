@@ -8,15 +8,14 @@ router.get("/test-ghl", async (req, res) => {
     const locationId = "6g4YmN9rwP8Q9Qk5njSW";
     const apiKey = "pit-9df35977-7326-4fbc-8ac2-94d564c31a36";
 
-    const response = await fetch(`https://services.leadconnectorhq.com/contacts/`, {
+    const response = await fetch(`https://services.leadconnectorhq.com/contacts/?locationId=6g4YmN9rwP8Q9Qk5njSW`, {
       method: "GET",
       headers: {
-        Authorization: `Bearer ${apiKey}`,
-        Version: "2021-07-28",
-        "Content-Type": "application/json",
-        LocationId: locationId,
-        "User-Agent": "PostmanRuntime/7.32.3"
-      },
+  Authorization: `Bearer ${apiKey}`,
+  Version: "2021-07-28",
+  "Content-Type": "application/json",
+  "User-Agent": "PostmanRuntime/7.32.3"
+},
       body: JSON.stringify({
         locationId,
         firstName: "Test",
