@@ -14,6 +14,7 @@ router.get("/test-ghl", async (req, res) => {
         Authorization: `Bearer ${apiKey}`,
         Version: "2021-07-28",
         "Content-Type": "application/json",
+        LocationId: locationId,
       },
       body: JSON.stringify({
         locationId,
