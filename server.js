@@ -1,5 +1,7 @@
 import express from 'express';
 import dotenv from 'dotenv';
+import nodemailer from 'nodemailer';
+import { createClient } from '@supabase/supabase-js';
 
 import leadsRoutes from './routes/leads.js';
 import outreachRoutes from './routes/outreach.js';
@@ -11,19 +13,92 @@ dotenv.config();
 const app = express();
 app.use(express.json());
 
-// root
+// ===== INIT SERVICES =====
+const supabase = createClient(
+  process.env.SUPABASE_URL,
+  process.env.SUPABASE_SERVICE_ROLE_KEY,
+  { auth: { persistSession: false, autoRefreshToken: false } }
+);
+
+const transporter = nodemailer.createTransport({
+  host: process.env.EMAIL_HOST,
+  port: Number(process.env.EMAIL_PORT),
+  secure: false,
+  auth: {
+    user: process.env.EMAIL_USER,
+    pass: process.env.EMAIL_PASS
+  }
+});
+
+// ===== BASIC ROUTES =====
 app.get('/', (req, res) => {
   res.send('Resonova Agent is live 🚀');
 });
 
-// health check (for uptime robot)
 app.get('/health', (req, res) => {
-  res.status(200).json({
-    status: 'ok',
-    uptime: process.uptime()
-  });
+  res.status(200).json({ status: 'ok', uptime: process.uptime() });
 });
 
+// ===== TEST ROUTES =====
+
+// 1) EMAIL
+app.get('/test-email', async (req, res) => {
+  try {
+    await transporter.sendMail({
+      from: process.env.EMAIL_USER,
+      to: process.env.EMAIL_USER,
+      subject: 'Resonova Test Email',
+      text: 'Email is working 🚀'
+    });
+    res.json({ success: true, message: 'Email sent' });
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ success: false, error: err.message });
+  }
+});
+
+// 2) SUPABASE
+app.get('/test-supabase', async (req, res) => {
+  try {
+    const { data, error } = await supabase
+      .from('leads')
+      .insert([{ full_name: 'Test User', email: `test_${Date.now()}@test.com` }])
+      .select();
+
+    if (error) throw error;
+
+    res.json({ success: true, data });
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ success: false, error: err.message });
+  }
+});
+
+// 3) GHL
+app.get('/test-ghl', async (req, res) => {
+  try {
+    const response = await fetch('https://rest.gohighlevel.com/v1/contacts/', {
+      method: 'POST',
+      headers: {
+        Authorization: `Bearer ${process.env.GHL_API_KEY}`,
+        'Content-Type': 'application/json'
+      },
+      body: JSON.stringify({
+        name: 'Test Lead',
+        email: `test_${Date.now()}@example.com`,
+        locationId: process.env.GHL_LOCATION_ID
+      })
+    });
+
+    const data = await response.json();
+    res.json({ success: true, data });
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ success: false, error: err.message });
+  }
+});
+
+// ===== EXISTING =====
 app.get('/track/open/:id', async (req, res) => {
   try {
     await markOpened(req.params.id);
@@ -61,7 +136,6 @@ app.get('/analytics', async (_req, res) => {
   }
 });
 
-// routes
 app.use('/leads', leadsRoutes);
 app.use('/outreach', outreachRoutes);
 
