@@ -1,5 +1,5 @@
 import fetch from 'node-fetch';
-import cheerio from 'cheerio';
+import * as cheerio from 'cheerio';
 
 export async function findSupervisors() {
   const url = 'https://www.imdb.com/search/name/?job_type=music_supervisor';
@@ -30,5 +30,3 @@ export async function findSupervisors() {
 
   return leads;
 }
-
-export const findLeads = findSupervisors;
