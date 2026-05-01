@@ -74,20 +74,15 @@ app.get('/test-supabase', async (req, res) => {
   }
 });
 
-// 3) GHL
+// 3) GHL (FIXED)
 app.get('/test-ghl', async (req, res) => {
   try {
-    const response = await fetch('https://rest.gohighlevel.com/v1/contacts/', {
-      method: 'POST',
+    const response = await fetch('https://services.leadconnectorhq.com/contacts/', {
+      method: 'GET',
       headers: {
         Authorization: `Bearer ${process.env.GHL_API_KEY}`,
-        'Content-Type': 'application/json'
-      },
-      body: JSON.stringify({
-        name: 'Test Lead',
-        email: `test_${Date.now()}@example.com`,
-        locationId: process.env.GHL_LOCATION_ID
-      })
+        Version: '2021-07-28'
+      }
     });
 
     const data = await response.json();
