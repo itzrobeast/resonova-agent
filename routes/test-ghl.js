@@ -9,7 +9,9 @@ router.get("/test-ghl", async (req, res) => {
       method: "GET",
       headers: {
         Authorization: `Bearer ${process.env.GHL_API_KEY}`,
+        Version: "2021-07-28",
         "Content-Type": "application/json",
+        LocationId: process.env.GHL_LOCATION_ID,
       },
     });
 
