@@ -5,13 +5,12 @@ const router = express.Router();
 
 router.get("/test-ghl", async (req, res) => {
   try {
-    const response = await fetch("https://rest.gohighlevel.com/v1/contacts/", {
+    const response = await fetch(`https://services.leadconnectorhq.com/contacts/?locationId=${process.env.GHL_LOCATION_ID}`, {
       method: "GET",
       headers: {
         Authorization: `Bearer ${process.env.GHL_API_KEY}`,
         Version: "2021-07-28",
         "Content-Type": "application/json",
-        LocationId: process.env.GHL_LOCATION_ID,
       },
     });
 
