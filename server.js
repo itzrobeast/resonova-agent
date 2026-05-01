@@ -11,9 +11,17 @@ dotenv.config();
 const app = express();
 app.use(express.json());
 
-// health check
+// root
 app.get('/', (req, res) => {
   res.send('Resonova Agent is live 🚀');
+});
+
+// health check (for uptime robot)
+app.get('/health', (req, res) => {
+  res.status(200).json({
+    status: 'ok',
+    uptime: process.uptime()
+  });
 });
 
 app.get('/track/open/:id', async (req, res) => {
