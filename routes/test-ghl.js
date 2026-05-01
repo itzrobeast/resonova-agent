@@ -5,6 +5,9 @@ const router = express.Router();
 
 router.get("/test-ghl", async (req, res) => {
   try {
+    console.log("API KEY:", process.env.GHL_API_KEY);
+    console.log("LOCATION ID:", process.env.GHL_LOCATION_ID);
+
     const response = await fetch(`https://services.leadconnectorhq.com/contacts/?locationId=${process.env.GHL_LOCATION_ID}`, {
       method: "GET",
       headers: {
