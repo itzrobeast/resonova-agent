@@ -15,6 +15,7 @@ router.get("/test-ghl", async (req, res) => {
         Version: "2021-07-28",
         "Content-Type": "application/json",
         LocationId: locationId,
+        "User-Agent": "PostmanRuntime/7.32.3"
       },
       body: JSON.stringify({
         locationId,
