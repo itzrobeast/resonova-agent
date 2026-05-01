@@ -5,8 +5,8 @@ const router = express.Router();
 
 router.get("/test-ghl", async (req, res) => {
   try {
-    const locationId = process.env.GHL_LOCATION_ID;
-    const apiKey = process.env.GHL_API_KEY;
+    const locationId = "6g4YmN9rwP8Q9Qk5njSW";
+    const apiKey = "HARDCODE_ME";
 
     const response = await fetch(`https://services.leadconnectorhq.com/contacts/`, {
       method: "POST",
@@ -16,10 +16,10 @@ router.get("/test-ghl", async (req, res) => {
         "Content-Type": "application/json",
       },
       body: JSON.stringify({
-        locationId: locationId,
+        locationId,
         firstName: "Test",
         lastName: "User",
-        email: "test@example.com"
+        email: "test2@example.com"
       }),
     });
 
