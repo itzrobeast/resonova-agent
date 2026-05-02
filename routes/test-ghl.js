@@ -5,7 +5,7 @@ const router = express.Router();
 
 router.get("/test-ghl", async (req, res) => {
   try {
-    const apiKey = "pit-9df35977-7326-4fbc-8ac2-94d564c31a36";
+    const apiKey = "pit-7e36b387-26a8-45cf-8112-ef026da0824b";
 
     const response = await fetch(
       "https://services.leadconnectorhq.com/contacts/",
