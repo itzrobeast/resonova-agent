@@ -5,7 +5,6 @@ const router = express.Router();
 
 router.get("/test-ghl", async (req, res) => {
   try {
-    const locationId = "6g4YmN9rwP8Q9Qk5njSW";
     const apiKey = "pit-9df35977-7326-4fbc-8ac2-94d564c31a36";
 
     const response = await fetch(
@@ -13,10 +12,7 @@ router.get("/test-ghl", async (req, res) => {
       {
         method: "GET",
         headers: {
-          Authorization: `Bearer ${apiKey}`,
-          Version: "2021-07-28",
-          LocationId: locationId,
-          Accept: "application/json"
+          Authorization: `Bearer ${apiKey}`
         }
       }
     );
