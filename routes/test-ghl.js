@@ -9,23 +9,23 @@ router.get("/test-ghl", async (req, res) => {
     const apiKey = "pit-9df35977-7326-4fbc-8ac2-94d564c31a36";
 
     const response = await fetch(
-      `https://services.leadconnectorhq.com/contacts/?locationId=${locationId}`,
+      "https://services.leadconnectorhq.com/contacts/",
       {
         method: "GET",
         headers: {
           Authorization: `Bearer ${apiKey}`,
           Version: "2021-07-28",
-          Accept: "application/json",
-          Connection: "keep-alive"
+          LocationId: locationId,
+          Accept: "application/json"
         }
       }
     );
 
-    const text = await response.text();
+    const data = await response.json();
 
     res.json({
       status: response.status,
-      body: text
+      data
     });
 
   } catch (error) {
