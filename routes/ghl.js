@@ -4,6 +4,39 @@ import { validateWebhookSignature } from '../services/ghl.js';
 
 const router = express.Router();
 
+// 🔥 CREATE CONTACT ROUTE
+router.post('/create-contact', async (req, res) => {
+  try {
+    const { firstName, lastName, email } = req.body;
+
+    const response = await fetch(
+      'https://services.leadconnectorhq.com/contacts/',
+      {
+        method: 'POST',
+        headers: {
+          Authorization: `Bearer ${process.env.GHL_API_KEY}`,
+          Version: '2021-07-28',
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({
+          firstName,
+          lastName,
+          email,
+          locationId: process.env.GHL_LOCATION_ID
+        })
+      }
+    );
+
+    const data = await response.json();
+    console.log('[GHL][CREATE CONTACT]', data);
+
+    res.json(data);
+  } catch (err) {
+    console.error('[GHL][CREATE CONTACT][ERROR]', err);
+    res.status(500).json({ error: err.message });
+  }
+});
+
 router.post('/webhook', async (req, res) => {
   try {
     if (!validateWebhookSignature(req)) {
