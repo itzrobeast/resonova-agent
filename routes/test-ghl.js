@@ -4,6 +4,8 @@ import fetch from "node-fetch";
 const router = express.Router();
 
 router.get("/test-ghl", async (req, res) => {
+  res.setHeader("Cache-Control", "no-store");
+
   try {
     const apiKey = process.env.GHL_API_KEY;
     const locationId = process.env.GHL_LOCATION_ID;
