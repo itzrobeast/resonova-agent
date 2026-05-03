@@ -60,16 +60,25 @@ export async function pushLeadToGhl(lead) {
 
   if (!contactId) throw new Error('No contact ID returned');
 
-  const opportunity = await ghlRequest('/opportunities/upsert', {
-    method: 'POST',
-    body: {
-      locationId: process.env.GHL_LOCATION_ID,
-      contactId,
-      pipelineId: process.env.GHL_PIPELINE_ID,
-      pipelineStageId: process.env.GHL_PIPELINE_STAGE_ID,
-      name: 'Resonova Lead'
-    }
-  });
+  // ✅ ONLY create opportunity if pipeline vars exist
+  let opportunityId = null;
+
+  if (process.env.GHL_PIPELINE_ID && process.env.GHL_PIPELINE_STAGE_ID) {
+    const opportunity = await ghlRequest('/opportunities/upsert', {
+      method: 'POST',
+      body: {
+        locationId: process.env.GHL_LOCATION_ID,
+        contactId,
+        pipelineId: process.env.GHL_PIPELINE_ID,
+        pipelineStageId: process.env.GHL_PIPELINE_STAGE_ID,
+        name: 'Resonova Lead'
+      }
+    });
+
+    opportunityId = opportunity?.id || null;
+  } else {
+    console.log('[GHL] Skipping opportunity creation (no pipeline configured)');
+  }
 
   if (process.env.GHL_WORKFLOW_ID) {
     await ghlRequest(`/contacts/${contactId}/workflow/${process.env.GHL_WORKFLOW_ID}`, {
@@ -77,7 +86,7 @@ export async function pushLeadToGhl(lead) {
     });
   }
 
-  return { contactId, opportunityId: opportunity?.id };
+  return { contactId, opportunityId };
 }
 
 export function validateWebhookSignature() {
