@@ -5,6 +5,7 @@ import { createClient } from '@supabase/supabase-js';
 
 import leadsRoutes from './routes/leads.js';
 import outreachRoutes from './routes/outreach.js';
+import ghlRoutes from './routes/ghl.js';
 import { markOpened, getTrackingStats } from './services/tracking.js';
 import { getAllLeads } from './services/leadStore.js';
 
@@ -133,6 +134,7 @@ app.get('/analytics', async (_req, res) => {
 
 app.use('/leads', leadsRoutes);
 app.use('/outreach', outreachRoutes);
+app.use('/ghl', ghlRoutes);
 
 const PORT = process.env.PORT || 3000;
 
