@@ -1,6 +1,7 @@
 import express from 'express';
 import { findSupervisors } from '../services/leadFinder.js';
 import { upsertLead, getAllLeads, markLeadReplied } from '../services/leadStore.js';
+import { pushLeadToGhl } from '../services/ghl.js';
 
 const router = express.Router();
 
@@ -26,6 +27,21 @@ router.post('/:id/replied', async (req, res) => {
   } catch (err) {
     console.error(err);
     return res.status(500).json({ error: 'Failed to update lead reply status' });
+  }
+});
+
+
+router.post('/:id/sync-ghl', async (req, res) => {
+  try {
+    const lead = req.body;
+    const result = await pushLeadToGhl({ ...lead, id: req.params.id });
+    return res.json({ success: true, result });
+  } catch (err) {
+    console.error('[GHL][SYNC][ERROR]', err);
+    return res.status(500).json({
+      error: 'Failed to sync lead to GHL',
+      details: err.details || err.message
+    });
   }
 });
 
