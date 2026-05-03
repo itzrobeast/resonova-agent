@@ -23,14 +23,19 @@ app.get('/health', (req, res) => {
   res.json({ ok: true });
 });
 
+// ✅ FIXED GHL TEST ROUTE
 app.get('/test-ghl', async (req, res) => {
   try {
-    const response = await fetch(`https://services.leadconnectorhq.com/locations/${process.env.GHL_LOCATION_ID}`, {
-      headers: {
-        Authorization: `Bearer ${process.env.GHL_ACCESS_TOKEN}`,
-        Version: '2023-02-21'
+    const response = await fetch(
+      `https://services.leadconnectorhq.com/contacts/?locationId=${process.env.GHL_LOCATION_ID}`,
+      {
+        headers: {
+          Authorization: `Bearer ${process.env.GHL_API_KEY}`,
+          Version: '2021-07-28',
+          'Content-Type': 'application/json'
+        }
       }
-    });
+    );
 
     const data = await response.json();
     res.json(data);
