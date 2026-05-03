@@ -1,8 +1,14 @@
 import express from 'express';
+import { createClient } from '@supabase/supabase-js';
 import { markLeadReplied } from '../services/leadStore.js';
 import { validateWebhookSignature } from '../services/ghl.js';
 
 const router = express.Router();
+
+const supabase = createClient(
+  process.env.SUPABASE_URL,
+  process.env.SUPABASE_SERVICE_ROLE_KEY
+);
 
 // 🔥 CREATE CONTACT ROUTE
 router.post('/create-contact', async (req, res) => {
@@ -29,6 +35,15 @@ router.post('/create-contact', async (req, res) => {
 
     const data = await response.json();
     console.log('[GHL][CREATE CONTACT]', data);
+
+    // ✅ SAVE TO SUPABASE
+    await supabase.from('leads').insert([
+      {
+        full_name: `${firstName} ${lastName}`,
+        email,
+        status: 'new'
+      }
+    ]);
 
     res.json(data);
   } catch (err) {
