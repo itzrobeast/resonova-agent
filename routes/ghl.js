@@ -15,6 +15,21 @@ router.post('/create-contact', async (req, res) => {
   try {
     const { firstName, lastName, email } = req.body;
 
+    // ✅ INSERT INTO SUPABASE FIRST
+    const leadInsert = await supabase
+      .from('leads')
+      .insert([
+        {
+          full_name: `${firstName} ${lastName}`,
+          email,
+          status: 'new'
+        }
+      ])
+      .select()
+      .single();
+
+    const leadId = leadInsert.data.id;
+
     const response = await fetch(
       'https://services.leadconnectorhq.com/contacts/',
       {
@@ -28,22 +43,19 @@ router.post('/create-contact', async (req, res) => {
           firstName,
           lastName,
           email,
-          locationId: process.env.GHL_LOCATION_ID
+          locationId: process.env.GHL_LOCATION_ID,
+          customFields: [
+            {
+              key: 'lead_id',
+              value: leadId
+            }
+          ]
         })
       }
     );
 
     const data = await response.json();
     console.log('[GHL][CREATE CONTACT]', data);
-
-    // ✅ SAVE TO SUPABASE
-    await supabase.from('leads').insert([
-      {
-        full_name: `${firstName} ${lastName}`,
-        email,
-        status: 'new'
-      }
-    ]);
 
     res.json(data);
   } catch (err) {
