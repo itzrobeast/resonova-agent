@@ -66,16 +66,21 @@ router.post('/create-contact', async (req, res) => {
 
 router.post('/webhook', async (req, res) => {
   try {
-    if (!validateWebhookSignature(req)) {
-      return res.status(401).json({ error: 'Invalid webhook signature' });
-    }
+    
 
     const payload = req.body || {};
-    console.log('[GHL][WEBHOOK][RECEIVED]', JSON.stringify(payload));
+console.log('[GHL WEBHOOK RECEIVED]', JSON.stringify(req.body, null, 2));
 
+    
     const eventType = payload.type || payload.eventType || 'unknown';
-    const leadId = payload?.contact?.customFields?.find?.((f) => f.key === 'lead_id')?.value || payload?.leadId;
+    const leadId =
+  payload?.contact?.customFields?.find?.((f) => f.key === 'lead_id')?.fieldValue ||
+  payload?.contact?.customFields?.find?.((f) => f.key === 'lead_id')?.value ||
+  payload?.leadId;
 
+    console.log('[WEBHOOK] eventType:', eventType);
+    console.log('[WEBHOOK] leadId:', leadId);
+    
     if (eventType.includes('reply') && leadId) {
       await markLeadReplied(leadId, {
         message: payload?.message?.body || payload?.body || '',
