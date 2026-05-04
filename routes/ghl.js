@@ -47,7 +47,7 @@ router.post('/create-contact', async (req, res) => {
           customFields: [
             {
               key: 'lead_id',
-              value: leadId
+              field_value: leadId
             }
           ]
         })
