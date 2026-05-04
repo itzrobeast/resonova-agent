@@ -62,33 +62,34 @@ router.post('/create-contact', async (req, res) => {
   }
 });
 
-// 🔥 FIXED WEBHOOK
+// 🔥 FINAL WEBHOOK FIX
 router.post('/webhook', async (req, res) => {
   try {
     const payload = req.body || {};
 
     console.log('[GHL WEBHOOK RECEIVED]', JSON.stringify(payload, null, 2));
 
-    // ✅ correct workflow payload
-    const eventType = payload.workflow?.name || 'contact_created';
+    const eventType =
+      payload.type ||
+      payload.eventType ||
+      payload.workflow?.name ||
+      'unknown';
 
-    // ✅ correct lead id mapping (from custom field OR fallback)
     const leadId =
+      payload.lead_id ||
       payload?.customData?.lead_id ||
-      payload?.contact_id;
+      payload.contact_id;
 
     console.log('[WEBHOOK] eventType:', eventType);
     console.log('[WEBHOOK] leadId:', leadId);
 
-    // ✅ update supabase to confirm pipeline working
     if (leadId) {
       await supabase
         .from('leads')
-        .update({ status: 'contacted' })
+        .update({ status: 'replied' })
         .eq('id', leadId);
     }
 
-    // 🔥 reply handling (later)
     if (eventType.toLowerCase().includes('reply') && leadId) {
       await markLeadReplied(leadId, {
         message: payload?.body || '',
