@@ -1,7 +1,6 @@
 import express from 'express';
 import { createClient } from '@supabase/supabase-js';
 import { markLeadReplied } from '../services/leadStore.js';
-import { validateWebhookSignature } from '../services/ghl.js';
 
 const router = express.Router();
 
@@ -15,7 +14,6 @@ router.post('/create-contact', async (req, res) => {
   try {
     const { firstName, lastName, email } = req.body;
 
-    // ✅ INSERT INTO SUPABASE FIRST
     const leadInsert = await supabase
       .from('leads')
       .insert([
@@ -64,27 +62,37 @@ router.post('/create-contact', async (req, res) => {
   }
 });
 
+// 🔥 FIXED WEBHOOK
 router.post('/webhook', async (req, res) => {
   try {
-    
-
     const payload = req.body || {};
-console.log('[GHL WEBHOOK RECEIVED]', JSON.stringify(req.body, null, 2));
 
-    
-    const eventType = payload.type || payload.eventType || 'unknown';
+    console.log('[GHL WEBHOOK RECEIVED]', JSON.stringify(payload, null, 2));
+
+    // ✅ correct workflow payload
+    const eventType = payload.workflow?.name || 'contact_created';
+
+    // ✅ correct lead id mapping (from custom field OR fallback)
     const leadId =
-  payload?.contact?.customFields?.find?.((f) => f.key === 'lead_id')?.fieldValue ||
-  payload?.contact?.customFields?.find?.((f) => f.key === 'lead_id')?.value ||
-  payload?.leadId;
+      payload?.customData?.lead_id ||
+      payload?.contact_id;
 
     console.log('[WEBHOOK] eventType:', eventType);
     console.log('[WEBHOOK] leadId:', leadId);
-    
-    if (eventType.includes('reply') && leadId) {
+
+    // ✅ update supabase to confirm pipeline working
+    if (leadId) {
+      await supabase
+        .from('leads')
+        .update({ status: 'contacted' })
+        .eq('id', leadId);
+    }
+
+    // 🔥 reply handling (later)
+    if (eventType.toLowerCase().includes('reply') && leadId) {
       await markLeadReplied(leadId, {
-        message: payload?.message?.body || payload?.body || '',
-        channel: payload?.message?.channel || 'ghl',
+        message: payload?.body || '',
+        channel: 'ghl',
         source: 'ghl_webhook'
       });
     }
